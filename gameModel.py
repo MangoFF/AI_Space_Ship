@@ -34,9 +34,7 @@ def modelDelect(model_name):
             fname = filearray[i]
             os.remove(fname)
         print('remove  successful')
-def model_use(model_name,input,eNum=4,cGain=False,hLayer=[[5]]):
-    model = Space_ship(enemyNum=eNum,considerGain=cGain,hiddenLayer=hLayer)  # we do not specify pretrained=True, i.e. do not load default weights
-    model.load_state_dict(torch.load(f'{model_name}.pth'))
+def model_use(model,input):
     model.eval()
     with torch.no_grad():
         input=input.unsqueeze(0)

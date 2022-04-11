@@ -10,9 +10,10 @@ BATCH_SIZE = 10
 LR = 0.001              # learning rate
 def train(dataloader, model, loss_fn, optimizer,modelname=''):
     size = len(dataloader.dataset)
-    print(size)
+    print("the size of data:"+str(size))
     writer = SummaryWriter()
-    for i in range(3):
+    for i in range(1000):
+        isGood=False
         for batch, (X, y) in enumerate(dataloader):
             # Compute prediction error
             pred = model(X)
@@ -21,17 +22,23 @@ def train(dataloader, model, loss_fn, optimizer,modelname=''):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if batch % 10 == 0:
+            if batch+1 % 100 == 0:
                 loss, current = loss.item(), batch * len(X)
                 writer.add_scalar(f'Train_Loss_{modelname}', loss, batch)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-
-if __name__=='__main__':
-    training_data = space_dataset('.\data\positions.npy', '.\data\label.npy')
+            if(loss<1000):
+                isGood=True
+        if isGood:
+            break;
+def train_auto(name='auto.pth',dataposion='.\data\positions.npy',lableposition='.\data\label.npy',enemyNum=4,considerGain=False,hiddenLayer=[[5], [2]]):
+    training_data = space_dataset(dataposion, lableposition)
     train_dataloader = DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
-    model= Space_ship()
+    model = Space_ship(enemyNum=enemyNum,considerGain=considerGain,hiddenLayer=hiddenLayer)
     print(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=LR)  # optimize all cnn parameters
     loss_func = nn.MSELoss()  # the target label is not one-hotted
-    train(train_dataloader,model,loss_func,optimizer)
-    torch.save(model.state_dict(), 'space_ship.pth')
+    train(train_dataloader, model, loss_func, optimizer)
+    torch.save(model.state_dict(),name )
+
+if __name__=='__main__':
+    train_auto()

@@ -7,8 +7,9 @@ from automative import DataGen, OperationSet
 import math
 from train_panel import TrainSystem
 import numpy as np
-
-
+import gameModel
+import torch
+import train
 
 #定义导弹类
 class Bullet(object):
@@ -53,7 +54,7 @@ class Plane(object):
 #玩家飞机类，继承基类
 class Hero(Plane):
     """Hero"""
-    def __init__(self, img='Resources/hero.png', x = 200, y = 600):
+    def __init__(self, img='Resources/hero.png', x = 200, y = 600,ScreenWidth=480,ScreenHeight=800):
         Plane.__init__(self)
         planeImageName = img
         self.image = pygame.image.load(planeImageName).convert()
@@ -64,13 +65,15 @@ class Hero(Plane):
         self.y = y
         self.step_length = 25
         self.planeName = 'hero'
+        self.ScreenWidth=ScreenWidth
+        self.ScreenHeight=ScreenHeight
 
 
 
     def keepInBound(self):
-        if self.x > ScreenWidth - self.width: self.x = ScreenWidth - self.width
+        if self.x > self.ScreenWidth - self.width: self.x = self.ScreenWidth - self.width
         if self.x < 0: self.x = 0
-        if self.y > ScreenHeight - self.height: self.y = ScreenHeight - self.height
+        if self.y > self.ScreenHeight - self.height: self.y = self.ScreenHeight - self.height
         if self.y < 0: self.y = 0
 
     #键盘控制自己飞机
@@ -100,14 +103,14 @@ class Hero(Plane):
 #定义敌人飞机类
 class Enemy(Plane):
     """docstring for Enemy"""
-    def __init__(self,speed, x = random.randint(20, 400), y = 0):
+    def __init__(self,speed=0, x = None, y = None):
         super(Enemy, self).__init__()
         randomImageNum = random.randint(1,3)
         planeImageName = 'Resources/enemy-' + str(randomImageNum) + '.png'
         self.image = pygame.image.load(planeImageName).convert()
         #敌人飞机原始位置
-        self.x = random.randint(20,400)    #敌机出现的位置任意
-        self.y = 0
+        self.x =x if x else random.randint(20, 400)    #敌机出现的位置任意
+        self.y = y if y else 0
         self.planeName = 'enemy'
         self.direction = 'down'     #用英文表示
         self.speed = speed          #移动速度,这个参数现在需要传入
@@ -125,14 +128,17 @@ class GameInit(object):
     g_ememyList = []    #前面加上g类似全局变量
     score = 0           #用于统计分数
     hero = object
-
+    ScreenHeight=0
+    ScreenWidth=0
+    init_hero_x=0
+    init_hero_y=0
     @classmethod
     def createEnemy(cls,speed):
         cls.g_ememyList.append(Enemy(speed))
 
     @classmethod
     def createHero(cls):
-        cls.hero = Hero()
+        cls.hero = Hero(x=cls.init_hero_x,y=cls.init_hero_y,ScreenHeight=cls.ScreenHeight,ScreenWidth=cls.ScreenWidth)
 
     @classmethod
     def gameInit(cls):
@@ -149,7 +155,7 @@ class GameInit(object):
         for i in cls.g_ememyList:
             i.draw(screen)   #画出敌机
             #敌机超过屏幕就从列表中删除
-            if i.y > ScreenWidth:
+            if i.y > cls.ScreenHeight:
                 delPlaneList.append(j)
             j += 1
         delPlaneList.reverse()
@@ -258,24 +264,32 @@ class GameInit(object):
         contentRect.left = x
         contentRect.top  = y
         surface.blit(content,contentRect)    
+def train_model():
+    train.train_auto()
+def ship_labeling(ScreenWidth=480,ScreenHeight=800):
+    game_control = gamecontroller(frame_rate=30, mode="HANDY")
+    pic_dic = load_pic()
 
-def ship_labeling(GameInit,screen):
-    trainsys = TrainSystem(ScreenWidth, ScreenHeight, 40, 70)
-    trainsys.mprint()
-    game_labeling(GameInit,screen)
+    game_control.screen_draw(pic_dic["start"], (0, 0))
+    game_control.update()
+    GameInit.waitForKeyPress()
+
+    trainsys = TrainSystem(ScreenWidth, ScreenHeight, 40, 70,positionPath='.\data\positions.npy',labelPath='.\data\label.npy')
     ## 开始绘制
+    pic_dic=load_pic()
+
     testexit = False
     while not testexit:
-        screen.blit(background, (0, 0))  # 不断覆盖，否则在背景上的图片会重叠
+        game_control.screen_draw(pic_dic["background"], (0, 0))  # 不断覆盖，否则在背景上的图片会重叠
         enemies = trainsys.genRandomPlanes(4)
         for i in range(1, len(enemies)):
             e = enemies[i]
-            GameInit.g_ememyList.append(Enemy(e[0], e[1]))
+            GameInit.g_ememyList.append(Enemy(speed=0,x=e[0], y=e[1]))
 
         GameInit.hero.x, GameInit.hero.y = enemies[0][0], enemies[0][1]
         print("hero loc", GameInit.hero.x, GameInit.hero.y)
-        GameInit.hero.draw(screen)
-        GameInit.draw(screen)
+        GameInit.hero.draw(game_control.screen)
+        GameInit.draw(game_control.screen)
         pygame.display.update()
 
         marked = False
@@ -291,10 +305,10 @@ def ship_labeling(GameInit,screen):
                     print("start draw the target point and record it. Mark at ", x, y)
                     # y = ScreenHeight - y
                     # draw target
-                    target = Hero('Resources/hero.png', x, y)
-                    target.draw(screen)
+                    target = Hero('Resources/hero.png', x-35, y-35)
+                    target.draw(game_control.screen)
                     pygame.display.update()
-                    trainsys.recordBestLoc(enemies, x, y)
+                    trainsys.recordBestLoc(enemies, x-35, y-35)
                     marked = True
                     # handled = True
                     # break
@@ -308,6 +322,7 @@ def ship_labeling(GameInit,screen):
                     handled = True
                     break
         GameInit.g_ememyList.clear()
+    trainsys.mprint()
 def load_pic():
     pic_dic={}
     # pic load
@@ -327,7 +342,7 @@ def load_pic():
     pic_dic["gameStartIcon"] = gameStartIcon
     return pic_dic
 class gamecontroller:
-    def __init__(self,frame_rate=30,option_rate=1,mode="HANDY",ScreenWidth=460, ScreenHeight=680,caption='飞机大战'):
+    def __init__(self,frame_rate=30,option_rate=2,mode="HANDY",ScreenWidth=480, ScreenHeight=800,caption='飞机大战',model_name="auto"):
         # init py game
         pygame.init()
 
@@ -354,16 +369,34 @@ class gamecontroller:
         self.font1 = pygame.font.SysFont("arial", 24)
         pygame.display.set_caption(caption)
 
-        self.ops = OperationSet("input.in")
+
         self.datagen = DataGen("data.out")
 
-        # enemy spawn span
+        # enemy spawn span time
         self.easyEnemySleepTime = 1
+        self.easyEnemySpeed = 5
+
         self.middleEnemySleepTime = 0.5
+        self.middleEnemySpeed=10
+
         self.hardEnemySleepTime = 0.25
+        self.hardEnemySpeed=15
+
         self.lastEnemyTime = 0
 
+        #game para set
+        GameInit.ScreenHeight=ScreenHeight
+        GameInit.ScreenWidth=ScreenWidth
+        init_hero_x=ScreenWidth/2
+        init_hero_y=ScreenHeight-100
+        GameInit.init_hero_x=init_hero_x
+        GameInit.init_hero_y = init_hero_y
         GameInit.gameInit()
+
+        #model set
+        self.model = gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [2]])
+        self.model.load_state_dict(torch.load(f'{model_name}.pth'))
+        self.ops = OperationSet(self.model)
     def update(self):
         pygame.display.update()
     def screen_draw(self,pic,position):
@@ -371,7 +404,7 @@ class gamecontroller:
 
 def run_game():
 
-    game_control = gamecontroller(frame_rate=30, mode="Handy")
+    game_control = gamecontroller(frame_rate=30, mode="AUTO")
     pic_dic=load_pic()
 
     game_control.screen_draw(pic_dic["start"],(0,0))
@@ -379,7 +412,7 @@ def run_game():
     GameInit.waitForKeyPress()
 
     GameInit.hero.x = 200
-    GameInit.hero.y = 600
+    GameInit.hero.y = 700
     while True:
         # draw background
         game_control.screen_draw(pic_dic["background"], (0, 0))
@@ -393,45 +426,46 @@ def run_game():
                 enemies = []
                 for e in GameInit.g_ememyList:
                     enemies.append([e.x, e.y])
-                op = game_control.ops.getnxt(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))[0]
+                op = game_control.ops.getnxt(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))
                 print(op)
                 if op != None:
                     print("op is ", op)
                     GameInit.hero.moveTowards(op[0], op[1])
                 game_control.last_op_time = cur_time
-        for event in pygame.event.get():
-            # quit
-            if event.type == pygame.QUIT:
-                GameInit.terminate()
-            elif event.type == KEYDOWN:
-                # control the ship
-                if event.key == K_LEFT:
-                    GameInit.heroPlaneKey('left')
-                elif event.key == K_RIGHT:
-                    GameInit.heroPlaneKey('right')
-                elif event.key == K_UP:
-                    GameInit.heroPlaneKey('up')
-                elif event.key == K_DOWN:
-                    GameInit.heroPlaneKey('down')
-                elif event.key == K_SPACE:
-                    GameInit.pause(game_control.screen, pic_dic["gamePauseIcon"])  # 难度选择方面有bug.因为时间一直继续
+        else:
+            for event in pygame.event.get():
+                # quit
+                if event.type == pygame.QUIT:
+                    GameInit.terminate()
+                elif event.type == KEYDOWN:
+                    # control the ship
+                    if event.key == K_LEFT:
+                        GameInit.heroPlaneKey('left')
+                    elif event.key == K_RIGHT:
+                        GameInit.heroPlaneKey('right')
+                    elif event.key == K_UP:
+                        GameInit.heroPlaneKey('up')
+                    elif event.key == K_DOWN:
+                        GameInit.heroPlaneKey('down')
+                    elif event.key == K_SPACE:
+                        GameInit.pause(game_control.screen, pic_dic["gamePauseIcon"])  # 难度选择方面有bug.因为时间一直继续
         # easy模式
         if interval < 10:
             # print("Spawn a easy Enemy")
             if time.time() - game_control.lastEnemyTime >= game_control.easyEnemySleepTime:
-                GameInit.createEnemy(1)  # 传入的参数是speed
+                GameInit.createEnemy(game_control.easyEnemySpeed)  # 传入的参数是speed
                 game_control.lastEnemyTime = time.time()
         # middle模式
         elif interval >= 10 and interval < 30:
             # print("Spawn a middle Enemy")
             if time.time() - game_control.lastEnemyTime >= game_control.middleEnemySleepTime:
-                GameInit.createEnemy(2)
+                GameInit.createEnemy(game_control.middleEnemySpeed)
                 game_control.lastEnemyTime = time.time()
         # hard模式
         elif interval >= 30:
             # print("Spawn a Hard Enemy")
             if time.time() - game_control.lastEnemyTime >= game_control.hardEnemySleepTime:
-                GameInit.createEnemy(3)
+                GameInit.createEnemy(game_control.hardEnemySpeed)
                 game_control.lastEnemyTime = time.time()
 
         # frame update
@@ -440,7 +474,7 @@ def run_game():
             for e in GameInit.g_ememyList:
                 enemies.append([e.x, e.y])
             game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies)
-            GameInit.shoot()
+            #GameInit.shoot()
             GameInit.setXY()
             GameInit.draw(game_control.screen)  # 描绘类的位置
             pygame.display.update()  # 不断更新图片
@@ -454,15 +488,14 @@ def run_game():
             pygame.display.update()
             GameInit.waitForKeyPress()
             break
-        # time.sleep(max(0, frame_duration - (cur_time - last_time)))
-
 #主循环
 if __name__ == '__main__':
-    ScreenWidth ,ScreenHeight= 460, 680
-    run_game()
+    #train_model()
+    ship_labeling();
+    #run_game()
 
-        
 
-        
 
-    
+
+
+
