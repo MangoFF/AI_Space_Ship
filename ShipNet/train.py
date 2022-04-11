@@ -28,7 +28,7 @@ def train(dataloader, model, loss_fn, optimizer):
                 isGood=True
         if isGood:
             break;
-def train_auto(name='auto.pth',dataposion='.\data\positions.npy',lableposition='.\data\label.npy',enemyNum=4,considerGain=False,hiddenLayer=[[5], [2]]):
+def train_auto(name='./checkpoint/auto.pth',dataposion='.\data\positions.npy',lableposition='.\data\label.npy',enemyNum=4,considerGain=False,hiddenLayer=[[5], [3],[5],[2]]):
     training_data = space_dataset(dataposion, lableposition)
     train_dataloader = DataLoader(training_data, batch_size=BATCH_SIZE, shuffle=True)
     model = Space_ship(enemyNum=enemyNum,considerGain=considerGain,hiddenLayer=hiddenLayer)

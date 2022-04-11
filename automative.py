@@ -19,10 +19,6 @@ class OperationSet():
 
 class DataGen():
     filehandler = None
-
-    def __init__(self, filename):
-        self.filehandler = open(filename, "a")
-    
     def screenshot(self, p, enemies):
         l = len(enemies)
         if l > 4:

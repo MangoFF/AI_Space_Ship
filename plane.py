@@ -373,7 +373,7 @@ class gamecontroller:
         pygame.display.set_caption(caption)
 
 
-        self.datagen = DataGen("data.out")
+        self.datagen = DataGen()
 
         # enemy spawn span time
         self.easyEnemySleepTime = 1
@@ -397,7 +397,7 @@ class gamecontroller:
         GameInit.gameInit()
 
         #model set
-        self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [2]])
+        self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [3],[5],[2]])
         self.model.load_state_dict(torch.load(f'./checkpoint/{model_name}.pth'))
         self.ops = OperationSet(self.model)
     def update(self):
