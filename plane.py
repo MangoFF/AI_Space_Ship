@@ -5,11 +5,11 @@ import pygame,random,sys,time   #sys模块中的exit用于退出
 from pygame.locals import *
 from automative import DataGen, OperationSet
 import math
-from train_panel import TrainSystem
+from ShipNet.train_panel import TrainSystem
 import numpy as np
-import gameModel
+import ShipNet.gameModel
 import torch
-import train
+import ShipNet.train
 
 #定义导弹类
 class Bullet(object):
@@ -54,7 +54,7 @@ class Plane(object):
 #玩家飞机类，继承基类
 class Hero(Plane):
     """Hero"""
-    def __init__(self, img='Resources/hero.png', x = 200, y = 600,ScreenWidth=480,ScreenHeight=800):
+    def __init__(self, img='Resources/actor.png', x = 200, y = 600,ScreenWidth=460,ScreenHeight=680):
         Plane.__init__(self)
         planeImageName = img
         self.image = pygame.image.load(planeImageName).convert()
@@ -106,7 +106,7 @@ class Enemy(Plane):
     def __init__(self,speed=0, x = None, y = None):
         super(Enemy, self).__init__()
         randomImageNum = random.randint(1,3)
-        planeImageName = 'Resources/enemy-' + str(randomImageNum) + '.png'
+        planeImageName = 'Resources/enemy' + str(randomImageNum) + '.png'
         self.image = pygame.image.load(planeImageName).convert()
         #敌人飞机原始位置
         self.x =x if x else random.randint(20, 400)    #敌机出现的位置任意
@@ -219,9 +219,12 @@ class GameInit(object):
         heroRect.left = cls.hero.x
         heroRect.top  = cls.hero.y
         for i in cls.g_ememyList:
-            enemyRect = pygame.Rect(i.image.get_rect())
-            enemyRect.left = i.x
-            enemyRect.top  = i.y
+            szie=i.image.get_rect()
+            enemyRect = pygame.Rect(szie)
+            enemyRect.height=enemyRect.height/2
+            enemyRect.width = enemyRect.width / 2
+            enemyRect.left = i.x+enemyRect.height/2
+            enemyRect.top  = i.y+enemyRect.height/2
             if heroRect.colliderect(enemyRect):
                 return True
         return False
@@ -265,8 +268,8 @@ class GameInit(object):
         contentRect.top  = y
         surface.blit(content,contentRect)    
 def train_model():
-    train.train_auto()
-def ship_labeling(ScreenWidth=480,ScreenHeight=800):
+    ShipNet.train.train_auto()
+def ship_labeling(ScreenWidth=460,ScreenHeight=680):
     game_control = gamecontroller(frame_rate=30, mode="HANDY")
     pic_dic = load_pic()
 
@@ -326,23 +329,23 @@ def ship_labeling(ScreenWidth=480,ScreenHeight=800):
 def load_pic():
     pic_dic={}
     # pic load
-    background = pygame.image.load("Resources/bg_01.png").convert()  # 背景图片
+    background = pygame.image.load("Resources/background.png").convert()  # 背景图片
     pic_dic["background"]=background
 
-    gameover = pygame.image.load("Resources/gameover.png").convert()  # 游戏结束图片
+    gameover = pygame.image.load("Resources/score.png").convert()  # 游戏结束图片
     pic_dic["gameover"] = gameover
 
-    start = pygame.image.load("Resources/startone.png")  # 游戏开始图片
+    start = pygame.image.load("Resources/startground.png")  # 游戏开始图片
     pic_dic["start"] = start
 
-    gamePauseIcon = pygame.image.load("Resources/Pause.png")
+    gamePauseIcon = pygame.image.load("Resources/score.png")
     pic_dic["gamePauseIcon"] = gamePauseIcon
 
     gameStartIcon = pygame.image.load("Resources/Start.png")
     pic_dic["gameStartIcon"] = gameStartIcon
     return pic_dic
 class gamecontroller:
-    def __init__(self,frame_rate=30,option_rate=10,mode="HANDY",ScreenWidth=480, ScreenHeight=800,caption='飞机大战',model_name="auto"):
+    def __init__(self,frame_rate=30,option_rate=10,mode="HANDY",ScreenWidth=460, ScreenHeight=680,caption='飞机大战',model_name="auto"):
         # init py game
         pygame.init()
 
@@ -394,17 +397,17 @@ class gamecontroller:
         GameInit.gameInit()
 
         #model set
-        self.model = gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [2]])
-        self.model.load_state_dict(torch.load(f'{model_name}.pth'))
+        self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [2]])
+        self.model.load_state_dict(torch.load(f'./checkpoint/{model_name}.pth'))
         self.ops = OperationSet(self.model)
     def update(self):
         pygame.display.update()
     def screen_draw(self,pic,position):
         self.screen.blit(pic, position)
 
-def run_game():
+def run_game(mode="AUTO"):
 
-    game_control = gamecontroller(frame_rate=30, mode="AUTO")
+    game_control = gamecontroller(frame_rate=30, mode=mode)
     pic_dic=load_pic()
 
     game_control.screen_draw(pic_dic["start"],(0,0))
@@ -479,17 +482,20 @@ def run_game():
             GameInit.draw(game_control.screen)  # 描绘类的位置
             pygame.display.update()  # 不断更新图片
             game_control.last_time = time.time()
+            #坚持的时间越久分数越高
+            GameInit.score = int((time.time() - game_control.startTime) * 100)
 
         if GameInit.gameover():
             # crash the enemy ,then game over
             time.sleep(1)  # 睡1s时间,让玩家看到与敌机相撞的画面
             game_control.screen_draw(pic_dic["gameover"], (0, 0))
-            GameInit.drawText('%s' % (GameInit.score), game_control.font, game_control.screen, 170, 400)
+            GameInit.drawText('%s' % (GameInit.score), game_control.font, game_control.screen, 130, 305)
             pygame.display.update()
             GameInit.waitForKeyPress()
             break
 #主循环
 if __name__ == '__main__':
+    random.seed(200)
     #train_model()
     #ship_labeling();
     run_game()

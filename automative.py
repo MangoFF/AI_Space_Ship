@@ -3,8 +3,8 @@ import queue
 import numpy as np
 import torch
 import torch.nn as nn
-import gameModel
-from gameModel import  model_use
+import ShipNet.gameModel
+from ShipNet.gameModel import  model_use
 class OperationSet():
     opque = queue.Queue()
     filehandler = None

@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from model import Space_ship
-from dataset import space_dataset
+from .model import Space_ship
+from .dataset import space_dataset
 from torch.utils.tensorboard import SummaryWriter
 # Hyper Parameters
 EPOCH = 1               # train the training data n times, to save time, we just train 1 epoch
