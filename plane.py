@@ -8,7 +8,7 @@ import math
 from train_panel import TrainSystem
 import numpy as np
 
-ScreenWidth,ScreenHeight = 460,680
+
 
 #定义导弹类
 class Bullet(object):
@@ -96,9 +96,6 @@ class Hero(Plane):
         if ty != self.y:
             self.y += dy * force
         self.keepInBound()
-        
-
-
 
 #定义敌人飞机类
 class Enemy(Plane):
@@ -262,59 +259,14 @@ class GameInit(object):
         contentRect.top  = y
         surface.blit(content,contentRect)    
 
-
-#主循环
-if __name__ == '__main__':
-    #初始化pygame
-    pygame.init()
-    #创建一个窗口与背景图片一样大
-    
-    easyEnemySleepTime = 1      #简单模式下每隔1s创建新的敌机
-    middleEnemySleepTime = 0.5 
-    hardEnemySleepTime = 0.25
-    lastEnemyTime  = 0
-    screen = pygame.display.set_mode((ScreenWidth,ScreenHeight),0,32)
-    pygame.display.set_caption('飞机大战')
-    #参数1：字体类型，例如"arial"  参数2：字体大小
-    font  = pygame.font.SysFont(None,64)
-    font1 = pygame.font.SysFont("arial",24)
-    
-    #背景图片加载并转换成图像
-    background = pygame.image.load("Resources/bg_01.png").convert()   #背景图片
-    gameover = pygame.image.load("Resources/gameover.png").convert()  #游戏结束图片
-    start = pygame.image.load("Resources/startone.png")               #游戏开始图片
-    gamePauseIcon = pygame.image.load("Resources/Pause.png")
-    gameStartIcon = pygame.image.load("Resources/Start.png")
-    screen.blit(start,(0,0))
-    pygame.display.update()       #开始显示启动图片，直到有Enter键按下才会开始
-    #记录游戏开始的时间
-    startTime = time.time()
-    #初始化
-    GameInit.gameInit()
-    
-    # 控制帧率
-    frame_rate = 30
-    frame_duration = 1 / frame_rate
-    last_time = startTime
-    
-    # 控制控制速率
-    op_rate = 1
-    op_duration = 1 / op_rate
-    last_op_time = startTime
-    # mode 选择
-    mode = "AUTO"
-    # mode = "HANDY"
-    ops = OperationSet("input.in")
-    datagen = DataGen("data.out")
-
-    GameInit.waitForKeyPress()
-
+def ship_labeling(GameInit,screen):
     trainsys = TrainSystem(ScreenWidth, ScreenHeight, 40, 70)
-
+    trainsys.mprint()
+    game_labeling(GameInit,screen)
     ## 开始绘制
     testexit = False
     while not testexit:
-        screen.blit(background,(0,0))    #不断覆盖，否则在背景上的图片会重叠
+        screen.blit(background, (0, 0))  # 不断覆盖，否则在背景上的图片会重叠
         enemies = trainsys.genRandomPlanes(4)
         for i in range(1, len(enemies)):
             e = enemies[i]
@@ -325,7 +277,7 @@ if __name__ == '__main__':
         GameInit.hero.draw(screen)
         GameInit.draw(screen)
         pygame.display.update()
-        
+
         marked = False
         handled = False
         while not handled:
@@ -356,38 +308,103 @@ if __name__ == '__main__':
                     handled = True
                     break
         GameInit.g_ememyList.clear()
+def load_pic():
+    pic_dic={}
+    # pic load
+    background = pygame.image.load("Resources/bg_01.png").convert()  # 背景图片
+    pic_dic["background"]=background
+
+    gameover = pygame.image.load("Resources/gameover.png").convert()  # 游戏结束图片
+    pic_dic["gameover"] = gameover
+
+    start = pygame.image.load("Resources/startone.png")  # 游戏开始图片
+    pic_dic["start"] = start
+
+    gamePauseIcon = pygame.image.load("Resources/Pause.png")
+    pic_dic["gamePauseIcon"] = gamePauseIcon
+
+    gameStartIcon = pygame.image.load("Resources/Start.png")
+    pic_dic["gameStartIcon"] = gameStartIcon
+    return pic_dic
+class gamecontroller:
+    def __init__(self,frame_rate=30,option_rate=1,mode="HANDY",ScreenWidth=460, ScreenHeight=680,caption='飞机大战'):
+        # init py game
+        pygame.init()
+
+        # recode the time
+        self.startTime = time.time()
+
+        # 控制控制速率
+        self.op_rate = option_rate
+        self.op_duration = 1 / self.op_rate
+        self.last_op_time = self.startTime
+
+        # 控制帧率
+        self.fram_rate = frame_rate
+        self.frame_duration = 1 / self.fram_rate
+        self.last_time = self.startTime
+
+        #mode
+        self.mode=mode
+
+        self.screen = pygame.display.set_mode((ScreenWidth, ScreenHeight), 0, 32)
+
+        # 参数1：字体类型，例如"arial"  参数2：字体大小
+        self.font = pygame.font.SysFont(None, 64)
+        self.font1 = pygame.font.SysFont("arial", 24)
+        pygame.display.set_caption(caption)
+
+        self.ops = OperationSet("input.in")
+        self.datagen = DataGen("data.out")
+
+        # enemy spawn span
+        self.easyEnemySleepTime = 1
+        self.middleEnemySleepTime = 0.5
+        self.hardEnemySleepTime = 0.25
+        self.lastEnemyTime = 0
+
+        GameInit.gameInit()
+    def update(self):
+        pygame.display.update()
+    def screen_draw(self,pic,position):
+        self.screen.blit(pic, position)
+
+def run_game():
+
+    game_control = gamecontroller(frame_rate=30, mode="Handy")
+    pic_dic=load_pic()
+
+    game_control.screen_draw(pic_dic["start"],(0,0))
+    game_control.update()
+    GameInit.waitForKeyPress()
 
     GameInit.hero.x = 200
     GameInit.hero.y = 600
-    trainsys.mprint()
     while True:
-        # print(math.floor(cnt / frame_rate))
-        # cnt += 1
-        screen.blit(background,(0,0))    #不断覆盖，否则在背景上的图片会重叠
-        screen.blit(gameStartIcon,(0,0))
-        GameInit.drawText('score:%s' % (GameInit.score),font1,screen,80,15)
+        # draw background
+        game_control.screen_draw(pic_dic["background"], (0, 0))
+        # draw start icon
+        game_control.screen_draw(pic_dic["gameStartIcon"], (0, 0))
+        GameInit.drawText('score:%s' % (GameInit.score), game_control.font1, game_control.screen, 80, 15)
         cur_time = time.time()
-        interval = cur_time - startTime
-        if mode == "AUTO":
-            if cur_time - last_op_time > op_duration:
+        interval = cur_time - game_control.startTime
+        if game_control.mode == "AUTO":
+            if cur_time - game_control.last_op_time > game_control.op_duration:
                 enemies = []
                 for e in GameInit.g_ememyList:
                     enemies.append([e.x, e.y])
-                op = ops.getnxt(datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))[0]
+                op = game_control.ops.getnxt(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))[0]
                 print(op)
-                if op!=None:
+                if op != None:
                     print("op is ", op)
                     GameInit.hero.moveTowards(op[0], op[1])
-                # if op == 'L':
-                #     GameInit.heroPlaneKey('left')
-                # elif op == 'R':
-                #     GameInit.heroPlaneKey('right')
-                last_op_time = cur_time
+                game_control.last_op_time = cur_time
         for event in pygame.event.get():
-            #print(event.type)
+            # quit
             if event.type == pygame.QUIT:
                 GameInit.terminate()
             elif event.type == KEYDOWN:
+                # control the ship
                 if event.key == K_LEFT:
                     GameInit.heroPlaneKey('left')
                 elif event.key == K_RIGHT:
@@ -397,45 +414,53 @@ if __name__ == '__main__':
                 elif event.key == K_DOWN:
                     GameInit.heroPlaneKey('down')
                 elif event.key == K_SPACE:
-                    GameInit.pause(screen,gamePauseIcon) #难度选择方面有bug.因为时间一直继续
+                    GameInit.pause(game_control.screen, pic_dic["gamePauseIcon"])  # 难度选择方面有bug.因为时间一直继续
         # easy模式
         if interval < 10:
             # print("Spawn a easy Enemy")
-            if time.time() - lastEnemyTime >= easyEnemySleepTime:
-                GameInit.createEnemy(1)   #传入的参数是speed
-                lastEnemyTime = time.time()
+            if time.time() - game_control.lastEnemyTime >= game_control.easyEnemySleepTime:
+                GameInit.createEnemy(1)  # 传入的参数是speed
+                game_control.lastEnemyTime = time.time()
         # middle模式
         elif interval >= 10 and interval < 30:
             # print("Spawn a middle Enemy")
-            if time.time() - lastEnemyTime >= middleEnemySleepTime:
+            if time.time() - game_control.lastEnemyTime >= game_control.middleEnemySleepTime:
                 GameInit.createEnemy(2)
-                lastEnemyTime = time.time()
+                game_control.lastEnemyTime = time.time()
         # hard模式
         elif interval >= 30:
             # print("Spawn a Hard Enemy")
-            if time.time() - lastEnemyTime >= hardEnemySleepTime:
+            if time.time() - game_control.lastEnemyTime >= game_control.hardEnemySleepTime:
                 GameInit.createEnemy(3)
-                lastEnemyTime = time.time()
+                game_control.lastEnemyTime = time.time()
 
         # frame update
-        if frame_duration <= cur_time - last_time:
+        if game_control.frame_duration <= cur_time - game_control.last_time:
             enemies = []
             for e in GameInit.g_ememyList:
                 enemies.append([e.x, e.y])
-            datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies)
+            game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies)
             GameInit.shoot()
             GameInit.setXY()
-            GameInit.draw(screen)    #描绘类的位置
-            pygame.display.update()  #不断更新图片
-            last_time = time.time()
+            GameInit.draw(game_control.screen)  # 描绘类的位置
+            pygame.display.update()  # 不断更新图片
+            game_control.last_time = time.time()
+
         if GameInit.gameover():
-            time.sleep(1)        #睡1s时间,让玩家看到与敌机相撞的画面
-            screen.blit(gameover,(0,0))
-            GameInit.drawText('%s' % (GameInit.score),font,screen,170,400)
+            # crash the enemy ,then game over
+            time.sleep(1)  # 睡1s时间,让玩家看到与敌机相撞的画面
+            game_control.screen_draw(pic_dic["gameover"], (0, 0))
+            GameInit.drawText('%s' % (GameInit.score), game_control.font, game_control.screen, 170, 400)
             pygame.display.update()
             GameInit.waitForKeyPress()
             break
         # time.sleep(max(0, frame_duration - (cur_time - last_time)))
+
+#主循环
+if __name__ == '__main__':
+    ScreenWidth ,ScreenHeight= 460, 680
+    run_game()
+
         
 
         
