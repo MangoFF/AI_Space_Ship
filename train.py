@@ -7,11 +7,10 @@ from torch.utils.tensorboard import SummaryWriter
 # Hyper Parameters
 EPOCH = 1               # train the training data n times, to save time, we just train 1 epoch
 BATCH_SIZE = 10
-LR = 0.001              # learning rate
-def train(dataloader, model, loss_fn, optimizer,modelname=''):
+LR = 0.01              # learning rate
+def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     print("the size of data:"+str(size))
-    writer = SummaryWriter()
     for i in range(1000):
         isGood=False
         for batch, (X, y) in enumerate(dataloader):
@@ -22,11 +21,10 @@ def train(dataloader, model, loss_fn, optimizer,modelname=''):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if batch+1 % 100 == 0:
+            if (batch+1) % 5 == 0:
                 loss, current = loss.item(), batch * len(X)
-                writer.add_scalar(f'Train_Loss_{modelname}', loss, batch)
                 print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
-            if(loss<1000):
+            if(loss<100):
                 isGood=True
         if isGood:
             break;

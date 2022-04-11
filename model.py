@@ -15,13 +15,18 @@ class Space_ship(nn.Module):
         for hidden in hiddenLayer:
             if lastLayer == None:
                 self.liner.add_module(f'{layNum}', nn.Linear((enemyNum+1)*2 if considerGain==False else (enemyNum+2)*2 , hidden[0] * 2))
+                self.liner.add_module(f'Relu{layNum}',
+                                      nn.ReLU())
                 lastLayer = hidden
                 layNum += 1;
             else:
                 self.liner.add_module(f'{layNum}', nn.Linear(lastLayer[0] * 2, hidden[0] * 2))
+                self.liner.add_module(f'Relu{layNum}',
+                                      nn.ReLU())
                 lastLayer = hidden
                 layNum += 1;
         self.liner.add_module(f'{layNum}', nn.Linear(hiddenLayer[-1][0] * 2, 2))
+        self.liner.add_module(f'Relu{layNum}',nn.ReLU())
     def forward(self, x):
         x = self.liner(x)
         return x    # return x for visualization

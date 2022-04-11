@@ -33,8 +33,6 @@ class DataGen():
         return [p] + enemies
 
 if __name__ == '__main__':
-    # dg = DataGen("data.out")
-    # dg.screenshot((10, 10), [(10, 11), (100, 100)])
     ops = OperationSet("input.in")
     c = ops.getnxt()
     while c:

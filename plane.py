@@ -342,7 +342,7 @@ def load_pic():
     pic_dic["gameStartIcon"] = gameStartIcon
     return pic_dic
 class gamecontroller:
-    def __init__(self,frame_rate=30,option_rate=2,mode="HANDY",ScreenWidth=480, ScreenHeight=800,caption='飞机大战',model_name="auto"):
+    def __init__(self,frame_rate=30,option_rate=10,mode="HANDY",ScreenWidth=480, ScreenHeight=800,caption='飞机大战',model_name="auto"):
         # init py game
         pygame.init()
 
@@ -491,8 +491,8 @@ def run_game():
 #主循环
 if __name__ == '__main__':
     #train_model()
-    ship_labeling();
-    #run_game()
+    #ship_labeling();
+    run_game()
 
 
 
