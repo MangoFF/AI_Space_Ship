@@ -39,9 +39,14 @@ class TrainSystem():
 		return ret
 
 	def recordBestLoc(self, l, x, y):
+		org_position=l[0]
+		move_Toward=(1 if x-org_position[0]>0 else -1,1 if y-org_position[1]>0 else -1)
 		self.training_set.append(l)
-		self.best_location.append((x, y))
-
+		self.best_location.append(move_Toward)
+	def recordRelevantVec(self, l, x, y):
+		move_Toward=(x,y)
+		self.training_set.append(l)
+		self.best_location.append(move_Toward)
 	def mprint(self):
 		np.save(self.positionPath, self.training_set)
 		np.save(self.labelPath, self.best_location)

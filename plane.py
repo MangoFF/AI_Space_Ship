@@ -397,15 +397,20 @@ class gamecontroller:
         GameInit.gameInit()
 
         #model set
-        self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5], [3],[5],[2]])
-        self.model.load_state_dict(torch.load(f'./checkpoint/{model_name}.pth'))
-        self.ops = OperationSet(self.model)
+        if(mode=="AUTO"):
+            self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5],[3],[5],[2]])
+            self.model.load_state_dict(torch.load(f'./checkpoint/{model_name}.pth'))
+            self.ops = OperationSet(self.model)
+        elif(mode=="TECH"):
+            #tech AI
+            self.trainsys = TrainSystem(ScreenWidth, ScreenHeight, 40, 70, positionPath='.\data\positions.npy',
+                               labelPath='.\data\label.npy')
     def update(self):
         pygame.display.update()
     def screen_draw(self,pic,position):
         self.screen.blit(pic, position)
 
-def run_game(mode="AUTO"):
+def run_game(mode="TECH"):
 
     game_control = gamecontroller(frame_rate=30, mode=mode)
     pic_dic=load_pic()
@@ -430,11 +435,37 @@ def run_game(mode="AUTO"):
                 for e in GameInit.g_ememyList:
                     enemies.append([e.x, e.y])
                 op = game_control.ops.getnxt(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))
-                print(op)
                 if op != None:
                     print("op is ", op)
                     GameInit.hero.moveTowards(op[0], op[1])
                 game_control.last_op_time = cur_time
+        elif game_control.mode == "TECH":
+            move_vec=[0,0]
+            for event in pygame.event.get():
+                # quit
+                if event.type == pygame.QUIT:
+                    GameInit.terminate()
+                elif event.type == KEYDOWN:
+                    # control the ship
+                    if event.key == K_LEFT:
+                        GameInit.heroPlaneKey('left')
+                        move_vec=[1,0]
+                    elif event.key == K_RIGHT:
+                        GameInit.heroPlaneKey('right')
+                        move_vec = [-1, 0]
+                    elif event.key == K_UP:
+                        GameInit.heroPlaneKey('up')
+                        move_vec = [0, -1]
+                    elif event.key == K_DOWN:
+                        GameInit.heroPlaneKey('down')
+                        move_vec = [0, 1]
+                    elif event.key == K_SPACE:
+                        GameInit.pause(game_control.screen, pic_dic["gamePauseIcon"])  # 难度选择方面有bug.因为时间一直继续
+                if cur_time - game_control.last_op_time > game_control.op_duration:
+                    enemies = []
+                    for e in GameInit.g_ememyList:
+                        enemies.append([e.x, e.y])
+                    game_control.trainsys.recordRelevantVec(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies), move_vec[0], move_vec[1])
         else:
             for event in pygame.event.get():
                 # quit
@@ -491,6 +522,7 @@ def run_game(mode="AUTO"):
             game_control.screen_draw(pic_dic["gameover"], (0, 0))
             GameInit.drawText('%s' % (GameInit.score), game_control.font, game_control.screen, 130, 305)
             pygame.display.update()
+            game_control.trainsys.mprint()
             GameInit.waitForKeyPress()
             break
 #主循环
@@ -498,8 +530,8 @@ if __name__ == '__main__':
     random.seed(200)
     #train_model()
     #ship_labeling();
-    run_game()
-
+    run_game("AUTO")
+    #run_game()
 
 
 
