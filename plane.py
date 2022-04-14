@@ -509,7 +509,7 @@ def game(mode="TECH"):
                     enemies = []
                     for e in GameInit.g_ememyList:
                         enemies.append([e.x / GameInit.ScreenWidth, e.y / GameInit.ScreenHeight])
-                    print("best loc is ", x, y)
+                    print("best loc is ", bestloc)
                     game_control.trainsys.recordRelevantVec(game_control.datagen.screenshot([GameInit.hero.x / GameInit.ScreenWidth, GameInit.hero.y / GameInit.ScreenHeight], enemies), bestloc[0]/ GameInit.ScreenWidth, bestloc[1]/ GameInit.ScreenHeight)
                     GameInit.hero.moveTowards(bestloc[0],bestloc[1])
                     recordStep=recordStep-1

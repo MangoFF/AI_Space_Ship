@@ -18,7 +18,6 @@ def train(dataloader, model, loss_fn, optimizer):
         for batch, (X, y) in enumerate(dataloader):
             # Compute prediction error
             pred = model(X)
-            print(pred)
             loss = loss_fn(pred, y)
             # Backpropagation
             optimizer.zero_grad()
