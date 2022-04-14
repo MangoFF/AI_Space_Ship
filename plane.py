@@ -1,6 +1,8 @@
 #coding=utf-8
 
 #导入pygame库
+import os
+
 import pygame,random,sys,time   #sys模块中的exit用于退出
 from pygame.locals import *
 from automative import DataGen, OperationSet
@@ -54,7 +56,7 @@ class Plane(object):
 #玩家飞机类，继承基类
 class Hero(Plane):
     """Hero"""
-    def __init__(self, img='Resources/actor.png', x = 200, y = 600,ScreenWidth=460,ScreenHeight=680):
+    def __init__(self, img='Resources/actor.png', x = 230, y = 680,ScreenWidth=460,ScreenHeight=680):
         Plane.__init__(self)
         planeImageName = img
         self.image = pygame.image.load(planeImageName).convert()
@@ -89,15 +91,20 @@ class Hero(Plane):
         self.keepInBound()
     
     def moveTowards(self, tx, ty):
-        force = self.step_length
-        if tx != self.x and ty != self.y:
-            force /= 2
-        dx = 1 if tx > self.x else -1
-        dy = 1 if ty > self.y else -1
+        force = 1/6
+        dx=tx-self.x if abs(tx-self.x)>0.01 else 0
+        dy=ty-self.y  if abs(ty-self.y)>0.01 else 0
         if tx != self.x:
             self.x += dx * force
         if ty != self.y:
             self.y += dy * force
+        self.keepInBound()
+    def moveRelevant(self, tx, ty):
+        force = 1 / 2
+        if tx != self.x:
+            self.x += tx * force
+        if ty != self.y:
+            self.y += tx * force
         self.keepInBound()
 
 #定义敌人飞机类
@@ -127,11 +134,24 @@ class GameInit(object):
     gameLevel = 1       #简单模式
     g_ememyList = []    #前面加上g类似全局变量
     score = 0           #用于统计分数
-    hero = object
+    hero = Hero
     ScreenHeight=0
     ScreenWidth=0
     init_hero_x=0
     init_hero_y=0
+
+    @classmethod
+    def paraInitZero(cls):
+        cls.gameLevel = 1  # 简单模式
+        cls.g_ememyList = []  # 前面加上g类似全局变量
+        cls.score = 0  # 用于统计分数
+        cls.hero = Hero
+        cls.ScreenHeight = 0
+        cls.ScreenWidth = 0
+        cls.init_hero_x = 0
+        cls.init_hero_y = 0
+
+
     @classmethod
     def createEnemy(cls,speed):
         cls.g_ememyList.append(Enemy(speed))
@@ -166,6 +186,7 @@ class GameInit(object):
 
         delBulletList = []
         j = 0
+        cls.hero.keepInBound()
         cls.hero.draw(screen)    #画出英雄飞机位置
         for i in cls.hero.bulletList:
             #描绘英雄飞机的子弹，超出window从列表中删除
@@ -245,7 +266,8 @@ class GameInit(object):
     @staticmethod
     def terminate():
         pygame.quit()
-        sys.exit(0)
+        #退出游戏但是不退出应用
+        #sys.exit(0)
 
     @staticmethod
     def pause(surface,image):
@@ -325,6 +347,7 @@ def ship_labeling(ScreenWidth=460,ScreenHeight=680):
                     handled = True
                     break
         GameInit.g_ememyList.clear()
+    GameInit.terminate()
     trainsys.mprint()
 def load_pic():
     pic_dic={}
@@ -345,7 +368,7 @@ def load_pic():
     pic_dic["gameStartIcon"] = gameStartIcon
     return pic_dic
 class gamecontroller:
-    def __init__(self,frame_rate=30,option_rate=10,mode="HANDY",ScreenWidth=460, ScreenHeight=680,caption='飞机大战',model_name="auto"):
+    def __init__(self,frame_rate=30,option_rate=1,mode="HANDY",ScreenWidth=460, ScreenHeight=680,caption='飞机大战',model_name="auto"):
         # init py game
         pygame.init()
 
@@ -390,12 +413,12 @@ class gamecontroller:
         #game para set
         GameInit.ScreenHeight=ScreenHeight
         GameInit.ScreenWidth=ScreenWidth
-        init_hero_x=ScreenWidth/2
-        init_hero_y=ScreenHeight-100
+        init_hero_x=ScreenWidth/2+50
+        init_hero_y=ScreenHeight
         GameInit.init_hero_x=init_hero_x
         GameInit.init_hero_y = init_hero_y
         GameInit.gameInit()
-
+        GameInit.draw(screen=self.screen)
         #model set
         if(mode=="AUTO"):
             self.model = ShipNet.gameModel.Space_ship(enemyNum=4, considerGain=False, hiddenLayer=[[5],[3],[5],[2]])
@@ -405,13 +428,23 @@ class gamecontroller:
             #tech AI
             self.trainsys = TrainSystem(ScreenWidth, ScreenHeight, 40, 70, positionPath='.\data\positions.npy',
                                labelPath='.\data\label.npy')
+
     def update(self):
         pygame.display.update()
+        GameInit.draw(screen=self.screen)
     def screen_draw(self,pic,position):
         self.screen.blit(pic, position)
-
-def run_game(mode="TECH"):
-
+def rungame():
+    game(mode="HANDY")
+def tech():
+    random.seed(200)
+    game(mode="TECH")
+def AI_play():
+    random.seed(200)
+    game(mode="AUTO")
+def game(mode="TECH"):
+    random.seed(200)
+    GameInit.paraInitZero()
     game_control = gamecontroller(frame_rate=30, mode=mode)
     pic_dic=load_pic()
 
@@ -419,8 +452,11 @@ def run_game(mode="TECH"):
     game_control.update()
     GameInit.waitForKeyPress()
 
-    GameInit.hero.x = 200
-    GameInit.hero.y = 700
+    GameInit.hero.x = 230
+    GameInit.hero.y = 650
+    bestloc=[0,0]
+    istech=False
+    recordStep=3
     while True:
         # draw background
         game_control.screen_draw(pic_dic["background"], (0, 0))
@@ -433,11 +469,15 @@ def run_game(mode="TECH"):
             if cur_time - game_control.last_op_time > game_control.op_duration:
                 enemies = []
                 for e in GameInit.g_ememyList:
-                    enemies.append([e.x, e.y])
-                op = game_control.ops.getnxt(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies))
-                if op != None:
-                    print("op is ", op)
-                    GameInit.hero.moveTowards(op[0], op[1])
+                    enemies.append([e.x/GameInit.ScreenWidth, e.y/GameInit.ScreenHeight])
+                if(len(enemies)>0):
+                    op = game_control.ops.getnxt(game_control.datagen.screenshot(
+                        [GameInit.hero.x / GameInit.ScreenWidth, GameInit.hero.y / GameInit.ScreenHeight], enemies))
+                    op = [op[0] * GameInit.ScreenWidth , op[1] * GameInit.ScreenHeight ]
+
+                    if op != None:
+                        print("bestloc is ", op)
+                        GameInit.hero.moveRelevant(op[0], op[1])
                 game_control.last_op_time = cur_time
         elif game_control.mode == "TECH":
             move_vec=[0,0]
@@ -445,27 +485,35 @@ def run_game(mode="TECH"):
                 # quit
                 if event.type == pygame.QUIT:
                     GameInit.terminate()
-                elif event.type == KEYDOWN:
-                    # control the ship
-                    if event.key == K_LEFT:
-                        GameInit.heroPlaneKey('left')
-                        move_vec=[1,0]
-                    elif event.key == K_RIGHT:
-                        GameInit.heroPlaneKey('right')
-                        move_vec = [-1, 0]
-                    elif event.key == K_UP:
-                        GameInit.heroPlaneKey('up')
-                        move_vec = [0, -1]
-                    elif event.key == K_DOWN:
-                        GameInit.heroPlaneKey('down')
-                        move_vec = [0, 1]
-                    elif event.key == K_SPACE:
-                        GameInit.pause(game_control.screen, pic_dic["gamePauseIcon"])  # 难度选择方面有bug.因为时间一直继续
-                if cur_time - game_control.last_op_time > game_control.op_duration:
+                elif event.type == KEYDOWN and event.key == K_q:
+                    game_control.trainsys.mprint()
+                    GameInit.terminate()
+                elif event.type == MOUSEBUTTONDOWN :
                     enemies = []
                     for e in GameInit.g_ememyList:
-                        enemies.append([e.x, e.y])
-                    game_control.trainsys.recordRelevantVec(game_control.datagen.screenshot([GameInit.hero.x, GameInit.hero.y], enemies), move_vec[0], move_vec[1])
+                        enemies.append([e.x / GameInit.ScreenWidth, e.y / GameInit.ScreenHeight])
+                        ## start draw the target point and record it
+                    x, y = pygame.mouse.get_pos()
+                    print("best loc is ", x, y)
+                        # y = ScreenHeight - y
+                        # draw target
+                    target = Hero('Resources/actor.png', x - 30, y - 30)
+                    target.draw(game_control.screen)
+                    pygame.display.update()
+                    recordStep=4
+                    bestloc = [x - 30, y - 30]
+                    game_control.trainsys.recordRelevantVec(game_control.datagen.screenshot([GameInit.hero.x / GameInit.ScreenWidth, GameInit.hero.y / GameInit.ScreenHeight], enemies), bestloc[0]/ GameInit.ScreenWidth, bestloc[1]/ GameInit.ScreenHeight)
+                    istech=True
+            if cur_time - game_control.last_op_time > game_control.op_duration:
+                if istech and recordStep>0:
+                    enemies = []
+                    for e in GameInit.g_ememyList:
+                        enemies.append([e.x / GameInit.ScreenWidth, e.y / GameInit.ScreenHeight])
+                    print("best loc is ", x, y)
+                    game_control.trainsys.recordRelevantVec(game_control.datagen.screenshot([GameInit.hero.x / GameInit.ScreenWidth, GameInit.hero.y / GameInit.ScreenHeight], enemies), bestloc[0]/ GameInit.ScreenWidth, bestloc[1]/ GameInit.ScreenHeight)
+                    GameInit.hero.moveTowards(bestloc[0],bestloc[1])
+                    recordStep=recordStep-1
+                game_control.last_op_time = cur_time
         else:
             for event in pygame.event.get():
                 # quit
@@ -522,16 +570,21 @@ def run_game(mode="TECH"):
             game_control.screen_draw(pic_dic["gameover"], (0, 0))
             GameInit.drawText('%s' % (GameInit.score), game_control.font, game_control.screen, 130, 305)
             pygame.display.update()
-            game_control.trainsys.mprint()
+            if game_control.mode=="TECH":
+                game_control.trainsys.mprint()
             GameInit.waitForKeyPress()
+            GameInit.terminate()
+            del game_control
             break
+def remoeModel():
+    os.remove("./checkpoint/auto.pth")
+def removeData():
+    os.remove("./data/positions.npy")
+    os.remove("./data/label.npy")
 #主循环
 if __name__ == '__main__':
     random.seed(200)
-    #train_model()
-    #ship_labeling();
-    run_game("AUTO")
-    #run_game()
+    rungame()
 
 
 

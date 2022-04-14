@@ -27,7 +27,7 @@ class TrainSystem():
 					return False
 			return  True
 		## random player's location
-		ret=[(random.randint(0, self.xr), random.randint(self.yr-200,self.yr))]
+		ret=[(random.randint(0, self.xr), random.randint(self.yr-100,self.yr))]
 		enemy=[]
 		for _ in range(n):
 			enemy.append((random.randint(0, self.xr), random.randint(0, self.yr)))
@@ -39,12 +39,11 @@ class TrainSystem():
 		return ret
 
 	def recordBestLoc(self, l, x, y):
-		org_position=l[0]
-		move_Toward=(1 if x-org_position[0]>0 else -1,1 if y-org_position[1]>0 else -1)
+		move_Toward=(x,y)
 		self.training_set.append(l)
 		self.best_location.append(move_Toward)
 	def recordRelevantVec(self, l, x, y):
-		move_Toward=(x,y)
+		move_Toward=(l[0][0]-x,l[0][1]-y)
 		self.training_set.append(l)
 		self.best_location.append(move_Toward)
 	def mprint(self):

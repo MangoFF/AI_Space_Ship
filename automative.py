@@ -12,13 +12,12 @@ class OperationSet():
     def __init__(self,model):
         self.model=model
     def getnxt(self, l):
-        org_pos=l[0]
         npl = np.array(l).astype(np.float32)
-        act=model_use(self.model, torch.tensor(npl))[0]
-        print(act)
-        act=act+torch.tensor(org_pos)
-        print(npl)
-        return act
+        bestloc=model_use(self.model, torch.tensor(npl))[0]
+        print(bestloc)
+        #act=act+torch.tensor(org_pos)
+        #print(npl)
+        return bestloc
 
 class DataGen():
     filehandler = None
