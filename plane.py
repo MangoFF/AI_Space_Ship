@@ -333,7 +333,10 @@ def ship_labeling(ScreenWidth=460,ScreenHeight=680):
                     target = Hero('Resources/hero.png', x-35, y-35)
                     target.draw(game_control.screen)
                     pygame.display.update()
-                    trainsys.recordBestLoc(enemies, x-35, y-35)
+                    enemie_relevant = []
+                    for e in enemies:
+                        enemie_relevant.append([e.x / GameInit.ScreenWidth, e.y / GameInit.ScreenHeight])
+                    trainsys.recordBestLoc(enemie_relevant, (x-35)/GameInit.ScreenWidth, (y-35)/GameInit.ScreenHeight)
                     marked = True
                     # handled = True
                     # break
