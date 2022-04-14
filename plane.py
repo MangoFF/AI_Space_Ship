@@ -476,7 +476,7 @@ def game(mode="TECH"):
                     op = [op[0] * GameInit.ScreenWidth , op[1] * GameInit.ScreenHeight ]
 
                     if op != None:
-                        print("bestloc is ", op)
+                        print("best Relevant loc is ", op)
                         GameInit.hero.moveRelevant(op[0], op[1])
                 game_control.last_op_time = cur_time
         elif game_control.mode == "TECH":
